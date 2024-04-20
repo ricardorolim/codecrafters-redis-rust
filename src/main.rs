@@ -10,7 +10,7 @@ fn handle_connection(mut stream: TcpStream) {
     println!("data {:?}", &buf[..n]);
 
     stream
-        .write_all(b"PONG\r\n")
+        .write_all(b"+PONG\r\n")
         .expect("Fail to write to client");
 }
 
