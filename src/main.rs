@@ -1,6 +1,7 @@
 use std::{
     io::{Read, Write},
     net::TcpListener,
+    thread,
 };
 
 fn handle_connection<S: Read + Write>(mut stream: S) {
@@ -24,8 +25,10 @@ fn main() {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                println!("accepted new connection");
-                handle_connection(stream);
+                thread::spawn(|| {
+                    println!("accepted new connection");
+                    handle_connection(stream);
+                });
             }
             Err(e) => {
                 println!("error: {}", e);
