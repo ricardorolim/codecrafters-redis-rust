@@ -4,6 +4,9 @@ use std::{
     thread,
 };
 
+mod command;
+mod parser;
+
 fn handle_connection<S: Read + Write>(mut stream: S) {
     let mut buf = [0; 512];
 
@@ -13,9 +16,11 @@ fn handle_connection<S: Read + Write>(mut stream: S) {
             break;
         }
 
-        let msg = b"+PONG\r\n".to_vec();
+        let request = parser::parse_iter(&mut buf.iter());
+        let cmd = command::build_cmd(request);
+        let msg = cmd.handle();
 
-        stream.write_all(&msg).expect("Fail to write ti client");
+        stream.write_all(&msg).expect("Fail to write to client");
     }
 }
 
@@ -40,6 +45,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use command::Command;
     use std::io;
     use std::io::{Cursor, Read, Write};
 
@@ -79,11 +85,21 @@ mod tests {
 
     #[test]
     fn test_handle_ping() {
-        let vec = "PING".to_string().as_bytes().to_owned();
+        let ping = command::Ping::new("".as_bytes());
         let mut mock_stream = MockStream::new();
 
-        mock_stream.add_to_read(&vec);
+        mock_stream.add_to_read(&ping.to_vec());
         handle_connection(&mut mock_stream);
         assert_eq!(mock_stream.writter, "+PONG\r\n".as_bytes());
+    }
+
+    #[test]
+    fn test_handle_echo() {
+        let echo = command::Echo::new("hey".as_bytes());
+        let mut mock_stream = MockStream::new();
+
+        mock_stream.add_to_read(&echo.to_vec());
+        handle_connection(&mut mock_stream);
+        assert_eq!(mock_stream.writter, "$3\r\nhey\r\n".as_bytes());
     }
 }
